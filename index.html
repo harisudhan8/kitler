@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Catler Character Game</title>
+    <link rel="icon" href="assests/kitler.jpg" type="image/jpeg"> 
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Reset and base styles */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        html, body {
+            height: 100%; 
+            width: 100%; 
+            overflow: hidden; 
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            padding: 5px; 
+        }
+
+        /* Main container - designed to fit exactly in viewport */
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            overflow: hidden; 
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 15px; 
+            text-align: center;
+            border-radius: 15px 15px 0 0;
+            flex-shrink: 0; 
+        }
+
+        .header h1 {
+            font-size: clamp(1.2rem, 3.5vw, 1.8rem); 
+            margin-bottom: 3px; 
+        }
+
+        .header .turn-info {
+            font-size: clamp(0.7rem, 1.8vw, 0.9rem); 
+            opacity: 0.9;
+        }
+
+        /* Game board area */
+        .game-area {
+            flex: 1; 
+            display: grid;
+            gap: 3px; 
+            padding: 5px; 
+            overflow: hidden; 
+        }
+
+        /* Player column header */
+        .player-header-row {
+            display: contents; 
+        }
+
+        .player-header, .number-cell {
+            text-align: center;
+            font-weight: bold;
+            color: #495057;
+            padding: 5px 0; 
+            background: #f0f0f0; 
+            border-radius: 4px;
+            font-size: clamp(0.7rem, 1.9vw, 0.9rem); 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap; 
+            overflow: hidden;
+            text-overflow: ellipsis; 
+        }
+        .number-cell {
+            background: #e6e6e6; 
+        }
+        .number-cell.highlighted {
+            background: #ffcc00; 
+            transition: background 0.3s ease;
+        }
+
+        /* Game grid cell */
+        .game-cell {
+            position: relative;
+            background: #e9ecef;
+            border: 2px solid #ced4da;
+            border-radius: 6px; 
+            cursor: pointer;
+            transition: all 0.2s ease;
+            overflow: hidden;
+            display: flex; 
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1; 
+            min-width: 0; 
+            min-height: 0; 
+        }
+
+        .game-cell:hover {
+            transform: translateY(-1px); 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+        }
+
+        .game-cell.selected {
+            border-color: #28a745;
+            box-shadow: 0 0 8px rgba(40, 167, 69, 0.4);
+        }
+
+        .game-cell.target-mode {
+            cursor: crosshair;
+        }
+
+        .game-cell.target-mode:hover {
+            border-color: #ffc107;
+            box-shadow: 0 0 8px rgba(255, 193, 7, 0.4);
+        }
+
+        .game-cell.eliminated-visual {
+            filter: grayscale(100%) brightness(0.7); 
+            opacity: 0.6; 
+            cursor: not-allowed;
+        }
+
+        .game-cell img.cell-background-image {
+            width: 100px;
+            height: 100px;
+            object-fit: cover; 
+            border-radius: 4px; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1; 
+        }
+
+        /* Overlays - smaller font sizes */
+        .bullets-display {
+            position: absolute;
+            bottom: 2px; 
+            right: 2px; 
+            background: rgba(220, 53, 69, 0.9); 
+            color: white;
+            padding: 1px 4px; 
+            border-radius: 3px; 
+            font-size: clamp(0.6rem, 1.5vw, 0.75rem); 
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        .stage-display {
+            position: absolute;
+            top: 2px; 
+            left: 2px; 
+            background: rgba(0, 123, 255, 0.9); 
+            color: white;
+            padding: 1px 4px; 
+            border-radius: 3px; 
+            font-size: clamp(0.6rem, 1.5vw, 0.75rem); 
+            z-index: 10;
+        }
+
+        .overlay-effect-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain; 
+            border-radius: 6px;
+            z-index: 20; 
+            opacity: 0;
+            pointer-events: none; 
+        }
+
+        .overlay-effect-image.active {
+            opacity: 1;
+            /* Animation handled by keyframes */
+        }
+
+        /* Controls - smaller padding and buttons */
+        .controls {
+            padding: 10px 15px; 
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            justify-content: center;
+            gap: 8px; 
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            padding: 8px 15px; 
+            border: none;
+            border-radius: 6px; 
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: clamp(0.7rem, 1.8vw, 0.9rem); 
+        }
+
+        .btn:hover {
+            transform: translateY(-0.5px); 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Modal - smaller padding and content */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 5px; 
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px; 
+            border-radius: 12px; 
+            max-width: 450px; 
+            width: 95%; 
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .modal-content h2 {
+            margin-bottom: 15px; 
+            font-size: clamp(1.2rem, 3vw, 1.6rem); 
+        }
+
+        .form-group {
+            margin-bottom: 10px; 
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 3px; 
+            font-weight: 600;
+            font-size: clamp(0.8rem, 2vw, 0.9rem);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 6px 10px; 
+            border: 1px solid #e9ecef; 
+            border-radius: 5px; 
+            font-size: clamp(0.9rem, 2.2vw, 1rem);
+        }
+
+        /* Win screen - smaller content */
+        .win-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            flex-direction: column; /* Changed to column for content stacking */
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            padding: 5px; 
+            overflow: hidden; /* Ensure no scrollbars */
+        }
+
+        .win-content {
+            text-align: center;
+            color: white;
+            padding: 15px; 
+            max-width: 350px; 
+            width: 95%; 
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+            border-radius: 8px; /* Added for general content container */
+        }
+
+        .win-content h1 {
+            font-size: clamp(1.8rem, 5vw, 2.5rem); 
+            margin-bottom: 15px; 
+            animation: pulse 2s infinite;
+        }
+
+        .win-content video {
+            width: 100%;
+            max-width: 300px; 
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        }
+
+        /* New CSS for the winning character display */
+        .winning-character-display {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9); /* Dark overlay */
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+            z-index: 1002; /* Above win-screen for the devilish phase */
+            overflow: hidden;
+        }
+
+        .winning-character-image {
+            width: 100%; /* Start large */
+            height: 100%; /* Start large */
+            object-fit: contain; /* Keep aspect ratio, fit within container */
+            transform: scale(0.1); /* Start very small */
+            opacity: 0; /* Start hidden */
+            transition: transform 2s ease-out, opacity 2s ease-out; /* Smooth animation */
+            filter: grayscale(100%) brightness(50%); /* Start eerie */
+        }
+
+        .winning-character-image.active {
+            transform: scale(0.9); /* Zoom in to almost full screen */
+            opacity: 1; /* Fade in */
+            filter: grayscale(0%) brightness(100%); /* Revert to color */
+        }
+
+        /* Animations remain the same */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); } 
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shoot {
+            0% { transform: scale(1); opacity: 0; }
+            50% { transform: scale(1.1); opacity: 1; } 
+            100% { transform: scale(1); opacity: 0; }
+        }
+
+        @keyframes blast {
+            0% { transform: scale(1) rotate(0deg); opacity: 0; }
+            50% { transform: scale(1.2) rotate(180deg); opacity: 1; } 
+            100% { transform: scale(1) rotate(360deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>Catler Character Game</h1>
+            <div class="turn-info" id="turn-info">Welcome! Set up your game to begin.</div>
+        </div>
+
+        <div class="game-area" id="players-area">
+            </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="generate-btn">Generate Number</button>
+            <button class="btn btn-warning" id="shoot-btn">Toggle Shoot Mode</button>
+            <button class="btn btn-danger" id="reset-btn">Reset Game</button>
+        </div>
+    </div>
+
+    <div class="modal" id="setup-modal">
+        <div class="modal-content">
+            <h2>Game Setup</h2>
+            <div class="form-group">
+                <label for="num-players">Number of Players (2-5):</label>
+                <input type="number" id="num-players" min="2" max="5" value="2">
+            </div>
+            <div id="player-names"></div>
+            <button class="btn btn-success" id="start-btn">Start Game</button>
+        </div>
+    </div>
+
+    <div class="winning-character-display" id="winning-character-display">
+        <img id="winning-character-image" class="winning-character-image" src="">
+    </div>
+
+    <div class="win-screen" id="win-screen">
+        <div class="win-content">
+            <h1 id="win-message">🎉 Winner! 🎉</h1>
+            <video id="win-video" src="" autoplay loop muted playsinline></video>
+            <button class="btn btn-primary" onclick="resetGame();">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let players = [];
+        let currentPlayerIndex = 0;
+        let shootMode = false;
+        let selectedShooter = null;
+        let cells = []; 
+        
+        const ODD_NUMBERS = [1, 3, 5, 7, 9]; 
+        const STAGE_NAMES = ['Empty', 'Head', 'Body', 'Hands', 'Costume', 'Gun', 'Bullets']; 
+        
+        // --- Asset Paths (Images, Videos, Sounds) ---
+        const gameAssets = {
+            kitler_favicon: 'assests/kitler.jpg', // Favicon path
+            empty: 'assests/empty.jpg',   
+            stage1: 'assests/stage1.jpg',  
+            stage2: 'assests/stage2.jpg',  
+            stage3: 'assests/stage3.jpg',  
+            stage4: 'assests/stage4.jpg',  
+            stage5: 'assests/stage5.jpg',  
+            stage6: 'assests/stage6.jpg',   
+            
+            shoot_effect_img: 'assests/shoot.png', 
+            blast_effect_img: 'assests/blast.png', 
+            eliminated_overlay_img: 'assests/eliminated_overlay.png', 
+            win_dance_video: 'assests/win_dance.mp4',
+
+            mouseClick_sfx: 'assests/mouse_click.mp3', 
+            backgroundBGM_sfx: 'assests/background_bgm.mp3', 
+            winnerSong_sfx: 'assests/happy_cat_song.mp3',
+            devilishBGM_sfx: 'assests/devilish_bgm.mp3' // NEW: Path to your devilish BGM
+        };
+
+        // --- Audio Objects ---
+        let bgmAudio;
+        let clickAudio;
+        let winnerAudio;
+        let devilishAudio; // NEW: Audio object for devilish BGM
+
+        // DOM elements
+        const setupModal = document.getElementById('setup-modal');
+        const numPlayersInput = document.getElementById('num-players');
+        const playerNamesDiv = document.getElementById('player-names');
+        const startBtn = document.getElementById('start-btn');
+        const generateBtn = document.getElementById('generate-btn');
+        const shootBtn = document.getElementById('shoot-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const turnInfo = document.getElementById('turn-info');
+        const playersArea = document.getElementById('players-area'); 
+        const winScreen = document.getElementById('win-screen');
+        const winMessage = document.getElementById('win-message');
+        const winVideo = document.getElementById('win-video');
+        const winningCharacterDisplay = document.getElementById('winning-character-display'); // NEW
+        const winningCharacterImage = document.getElementById('winning-character-image');   // NEW
+
+        // --- Initialization ---
+
+        function initializeAudio() {
+            bgmAudio = new Audio(gameAssets.backgroundBGM_sfx);
+            bgmAudio.loop = true;  
+            bgmAudio.volume = 0.3; 
+
+            clickAudio = new Audio(gameAssets.mouseClick_sfx);
+            clickAudio.volume = 0.7; 
+
+            winnerAudio = new Audio(gameAssets.winnerSong_sfx);
+            winnerAudio.volume = 0.8; 
+
+            devilishAudio = new Audio(gameAssets.devilishBGM_sfx); // NEW
+            devilishAudio.volume = 0.7; // Adjust as needed
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeAudio();
+            updatePlayerNameInputs(); 
+        });
+
+        // Event Listeners
+        numPlayersInput.addEventListener('input', updatePlayerNameInputs);
+        
+        startBtn.addEventListener('click', () => {
+            playClickSound(); 
+            startGame();
+        });
+
+        generateBtn.addEventListener('click', () => {
+            playClickSound(); 
+            generateNumber();
+        });
+        
+        shootBtn.addEventListener('click', () => {
+            playClickSound(); 
+            toggleShootMode();
+        });
+        
+        resetBtn.addEventListener('click', () => {
+            playClickSound(); 
+            resetGame();
+        });
+
+        function playClickSound() {
+            if (clickAudio) {
+                clickAudio.currentTime = 0; 
+                clickAudio.play().catch(e => console.warn("Click sound play failed:", e));
+            }
+        }
+
+        // --- Core Game Logic Functions ---
+
+        function updatePlayerNameInputs() {
+            const num = parseInt(numPlayersInput.value) || 2;
+            playerNamesDiv.innerHTML = '';
+            
+            for (let i = 0; i < num; i++) {
+                const div = document.createElement('div');
+                div.className = 'form-group';
+                div.innerHTML = `
+                    <label>Player ${i + 1} Name:</label>
+                    <input type="text" id="player-${i}" placeholder="Player ${i + 1}" value="Player ${i + 1}">
+                `;
+                playerNamesDiv.appendChild(div);
+            }
+        }
+
+        function startGame() {
+            const numPlayers = parseInt(numPlayersInput.value) || 2;
+            players = [];
+            
+            for (let i = 0; i < numPlayers; i++) {
+                const nameInput = document.getElementById(`player-${i}`);
+                const name = nameInput.value.trim() || `Player ${i + 1}`;
+                players.push({ id: i, name: name });
+            }
+
+            currentPlayerIndex = 0;
+            setupModal.style.display = 'none';
+            initializeBoard();
+            updateTurnInfo();
+
+            bgmAudio.play().catch(e => console.error("Error playing BGM (likely autoplay policy):", e));
+        }
+
+        function initializeBoard() {
+            cells = [];
+            shootMode = false;
+            selectedShooter = null;
+            
+            playersArea.innerHTML = ''; 
+
+            playersArea.style.gridTemplateColumns = `minmax(0, 0.5fr) repeat(${players.length}, minmax(0, 1fr))`;
+            playersArea.style.gridTemplateRows = `minmax(0, 0.5fr) repeat(${ODD_NUMBERS.length}, minmax(0, 1fr))`;
+
+            const emptyCorner = document.createElement('div');
+            emptyCorner.className = 'player-header'; 
+            emptyCorner.textContent = ''; 
+            playersArea.appendChild(emptyCorner);
+
+            players.forEach(player => {
+                const header = document.createElement('div');
+                header.className = 'player-header';
+                header.textContent = player.name;
+                playersArea.appendChild(header);
+            });
+
+            ODD_NUMBERS.forEach(oddNum => {
+                const numberCellHeader = document.createElement('div');
+                numberCellHeader.className = 'number-cell';
+                numberCellHeader.textContent = oddNum;
+                numberCellHeader.dataset.number = oddNum; 
+                playersArea.appendChild(numberCellHeader);
+                
+                players.forEach((player, playerIndex) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'game-cell';
+                    cell.dataset.player = playerIndex; 
+                    cell.dataset.oddNumber = oddNum; 
+                    
+                    const characterImage = document.createElement('img');
+                    characterImage.className = 'cell-background-image';
+                    characterImage.src = gameAssets.empty; 
+                    cell.appendChild(characterImage);
+
+                    const shootOverlay = document.createElement('img');
+                    shootOverlay.className = 'overlay-effect-image shoot-overlay';
+                    shootOverlay.src = gameAssets.shoot_effect_img;
+                    cell.appendChild(shootOverlay);
+
+                    const blastOverlay = document.createElement('img');
+                    blastOverlay.className = 'overlay-effect-image blast-overlay';
+                    blastOverlay.src = gameAssets.blast_effect_img;
+                    cell.appendChild(blastOverlay);
+
+                    const eliminatedOverlay = document.createElement('img');
+                    eliminatedOverlay.className = 'overlay-effect-image eliminated-overlay';
+                    eliminatedOverlay.src = gameAssets.eliminated_overlay_img;
+                    cell.appendChild(eliminatedOverlay);
+
+                    cell.innerHTML += `
+                        <div class="bullets-display"></div>
+                        <div class="stage-display">Stage 0</div>
+                    `;
+                    
+                    cell.addEventListener('click', handleCellClick);
+                    playersArea.appendChild(cell);
+
+                    cells.push({
+                        element: cell,        
+                        player: playerIndex,  
+                        oddNumber: oddNum,    
+                        stage: 0,             
+                        bullets: 0,           
+                        eliminated: false     
+                    });
+                });
+            });
+
+            updateButtons(); 
+        }
+
+        function generateNumber() {
+            if (shootMode) {
+                updateTurnInfo('Exit shoot mode to generate a number!');
+                return;
+            }
+
+            const randomOdd = ODD_NUMBERS[Math.floor(Math.random() * ODD_NUMBERS.length)];
+            highlightNumber(randomOdd); 
+
+            const targetCellData = cells.find(cell => 
+                cell.player === currentPlayerIndex && 
+                cell.oddNumber === randomOdd && 
+                !cell.eliminated 
+            );
+
+            if (targetCellData) {
+                let stageAdvanced = false; // Flag to check if stage actually increased
+                if (targetCellData.stage < 6) { 
+                    targetCellData.stage++;
+                    stageAdvanced = true;
+                    if (targetCellData.stage === 6) { 
+                        targetCellData.bullets = 3; 
+                        updateTurnInfo(`${players[currentPlayerIndex].name} got ${randomOdd} and completed their character! Gained 3 bullets!`);
+                    } else {
+                        updateTurnInfo(`${players[currentPlayerIndex].name} got ${randomOdd} and advanced to stage ${targetCellData.stage}.`);
+                    }
+                } else if (targetCellData.stage === 6 && targetCellData.bullets < 3) {
+                    targetCellData.bullets = Math.min(targetCellData.bullets + 1, 3);
+                    updateTurnInfo(`${players[currentPlayerIndex].name} got ${randomOdd} and gained a bullet! Total: ${targetCellData.bullets}.`);
+                } else {
+                    updateTurnInfo(`${players[currentPlayerIndex].name} got ${randomOdd}, but this character is already at max bullets.`);
+                }
+            } else {
+                updateTurnInfo(`${players[currentPlayerIndex].name} got ${randomOdd}, but no character progressed (might be eliminated or not found).`);
+            }
+
+            updateCellVisual(targetCellData); 
+
+            // Check for win condition after every action, BEFORE next turn
+            if (checkWin()) {
+                // If checkWin returns true, it means showWin has been called and game flow should stop
+                return; 
+            }
+            nextTurn(); 
+        }
+
+        function highlightNumber(number) {
+            const numberCellHeader = playersArea.querySelector(`.number-cell[data-number="${number}"]`);
+            if (numberCellHeader) {
+                numberCellHeader.classList.add('highlighted');
+                setTimeout(() => numberCellHeader.classList.remove('highlighted'), 1000);
+            }
+        }
+
+        function updateCellVisual(cellData) {
+            if (!cellData || !cellData.element) return; 
+
+            const { element, stage, bullets, eliminated } = cellData;
+            const characterImage = element.querySelector('.cell-background-image');
+            const stageDisplay = element.querySelector('.stage-display');
+            let bulletsDisplay = element.querySelector('.bullets-display');
+            const eliminatedOverlay = element.querySelector('.eliminated-overlay');
+
+            element.querySelector('.shoot-overlay').classList.remove('active');
+            element.querySelector('.blast-overlay').classList.remove('active');
+            eliminatedOverlay.classList.remove('active'); 
+
+            if (eliminated) {
+                characterImage.src = gameAssets.empty; 
+                element.classList.add('eliminated-visual');
+                stageDisplay.textContent = 'OUT';
+                if (bulletsDisplay) bulletsDisplay.style.display = 'none'; 
+                eliminatedOverlay.classList.add('active'); 
+                return; 
+            }
+
+            characterImage.src = gameAssets[`stage${stage}`]; 
+            stageDisplay.textContent = `Stage ${stage}`;
+            element.classList.remove('eliminated-visual'); 
+
+            if (stage === 6 && bullets > 0) {
+                if (!bulletsDisplay) {
+                    bulletsDisplay = document.createElement('div');
+                    bulletsDisplay.className = 'bullets-display';
+                    element.appendChild(bulletsDisplay);
+                }
+                bulletsDisplay.textContent = `${bullets} 🔫`;
+                bulletsDisplay.style.display = 'block'; 
+            } else if (bulletsDisplay) {
+                bulletsDisplay.style.display = 'none'; 
+            }
+        }
+
+        function toggleShootMode() {
+            const currentPlayerHasBullets = cells.some(cell => 
+                cell.player === currentPlayerIndex && 
+                !cell.eliminated && 
+                cell.stage === 6 && 
+                cell.bullets > 0
+            );
+
+            if (!currentPlayerHasBullets && !shootMode) {
+                updateTurnInfo(`${players[currentPlayerIndex].name} needs a character with bullets to shoot!`);
+                return;
+            }
+
+            shootMode = !shootMode;
+            selectedShooter = null; 
+            updateButtons(); 
+            updateCellStyles(); 
+            
+            if (shootMode) {
+                updateTurnInfo(`${players[currentPlayerIndex].name} - Shoot mode active. Select your shooter (character with Gun + Bullets).`);
+            } else {
+                updateTurnInfo(`${players[currentPlayerIndex].name}'s turn. Choose an action.`);
+            }
+        }
+
+        function handleCellClick(event) {
+            playClickSound(); 
+
+            const cellElement = event.currentTarget;
+            const cellData = cells.find(c => c.element === cellElement);
+            
+            if (!shootMode) {
+                updateTurnInfo('Toggle "Shoot Mode" first if you want to attack!');
+                return;
+            }
+
+            if (cellData.eliminated) {
+                updateTurnInfo('This character is eliminated and cannot be interacted with!');
+                return;
+            }
+
+            if (!selectedShooter) {
+                if (cellData.player !== currentPlayerIndex) {
+                    updateTurnInfo('You must select one of your OWN characters as the shooter.');
+                    return;
+                }
+                if (cellData.stage !== 6 || cellData.bullets <= 0) {
+                    updateTurnInfo('Selected character has no gun or no bullets. Select a completed character.');
+                    return;
+                }
+                selectedShooter = cellData; 
+                updateTurnInfo(`Shooter selected (${cellData.bullets} bullets). Now select an OPPONENT'S character to target.`);
+                updateCellStyles(); 
+                return;
+            }
+
+            if (cellData === selectedShooter) {
+                selectedShooter = null;
+                updateTurnInfo('Shooter deselected. Select a shooter first.');
+                updateCellStyles(); 
+                return;
+            }
+
+            if (cellData.player === selectedShooter.player) {
+                updateTurnInfo('You cannot shoot your own character! Select an opponent\'s character.');
+                return;
+            }
+
+            executeShot(selectedShooter, cellData);
+        }
+
+        function executeShot(shooter, target) {
+            updateTurnInfo(`${players[shooter.player].name} shoots ${players[target.player].name}'s ${target.oddNumber} character!`);
+            
+            const shooterEffect = shooter.element.querySelector('.shoot-overlay');
+            const targetEffect = target.element.querySelector('.blast-overlay');
+            
+            shooterEffect.classList.add('active');
+            targetEffect.classList.add('active');
+            
+            setTimeout(() => {
+                shooterEffect.classList.remove('active');
+                targetEffect.classList.remove('active');
+                shooterEffect.style.animation = 'none';
+                targetEffect.style.animation = 'none';
+                shooterEffect.offsetHeight; 
+                targetEffect.offsetHeight; 
+                shooterEffect.style.animation = '';
+                targetEffect.style.animation = '';
+            }, 400); 
+
+            shooter.bullets--; 
+            if (shooter.bullets === 0) {
+                shooter.stage = 5; 
+            }
+            
+            target.eliminated = true; 
+            
+            updateCellVisual(shooter); 
+            updateCellVisual(target);
+
+            shootMode = false;
+            selectedShooter = null;
+            updateButtons();
+            updateCellStyles(); 
+
+            if (checkWin()) {
+                return; 
+            }
+            nextTurn(); 
+        }
+
+        function checkWin() {
+            let winningPlayer = null;
+            let winningCharacterData = null; // Store data of the specific winning character
+
+            // WIN CONDITION 1: Character Completion
+            for (let player of players) {
+                const completedCharacter = cells.find(cell => 
+                    cell.player === player.id && 
+                    !cell.eliminated && 
+                    cell.stage >= 5     
+                );
+                if (completedCharacter) {
+                    winningPlayer = player;
+                    winningCharacterData = completedCharacter; // Found the character!
+                    break; // Found a winner, no need to check other players for this condition
+                }
+            }
+
+            if (winningPlayer && winningCharacterData) {
+                // Trigger the devilish zoom first, then the happy win screen
+                displayWinningCharacterZoom(winningCharacterData, winningPlayer.name, 'by completing a Catler character!');
+                return true; 
+            }
+
+            // WIN CONDITION 2: Elimination
+            const playersWithActiveCharacters = players.filter(player => 
+                cells.some(cell => 
+                    cell.player === player.id && !cell.eliminated
+                )
+            );
+
+            if (players.length > 1 && playersWithActiveCharacters.length === 1) {
+                winningPlayer = playersWithActiveCharacters[0];
+                // For elimination, no specific character to zoom, but we'll still use the sequence
+                // Grab any active character for the display, preferably stage 6 if available
+                winningCharacterData = cells.find(cell => 
+                    cell.player === winningPlayer.id && !cell.eliminated && cell.stage === 6
+                ) || cells.find(cell => 
+                    cell.player === winningPlayer.id && !cell.eliminated
+                ); // Fallback to any active character
+                
+                displayWinningCharacterZoom(winningCharacterData, winningPlayer.name, 'by eliminating all opponents!');
+                return true; 
+            }
+            
+            // SPECIAL CASE: All players eliminated (a draw/game over)
+            if (players.length > 0 && playersWithActiveCharacters.length === 0) {
+                 winMessage.textContent = `Game Over! All players eliminated.`;
+                 winVideo.src = ''; 
+                 winScreen.style.display = 'flex';
+                 bgmAudio.pause(); 
+                 bgmAudio.currentTime = 0;
+                 winnerAudio.pause(); 
+                 winnerAudio.currentTime = 0;
+                 devilishAudio.pause(); // Stop devilish BGM if it somehow started
+                 devilishAudio.currentTime = 0;
+                 return true;
+            }
+
+            return false; 
+        }
+
+        function displayWinningCharacterZoom(characterData, playerName, reason) {
+            bgmAudio.pause(); // Pause main BGM
+            bgmAudio.currentTime = 0;
+
+            winningCharacterDisplay.style.display = 'flex';
+            winningCharacterImage.src = gameAssets[`stage${characterData.stage}`]; // Use the winning character's stage image
+            winningCharacterImage.classList.remove('active'); // Ensure reset for animation
+            
+            // Start devilish BGM
+            devilishAudio.currentTime = 0;
+            devilishAudio.play().catch(e => console.error("Error playing devilish BGM:", e));
+
+            // Small delay before applying 'active' class to allow CSS transition to work
+            setTimeout(() => {
+                winningCharacterImage.classList.add('active');
+            }, 50); // A very small delay
+
+            // After a delay (duration of devilish music + animation), show win screen
+            const devilishPhaseDuration = 3000; // Adjust based on your devilish_bgm.mp3 length and animation speed
+            setTimeout(() => {
+                devilishAudio.pause(); // Stop devilish BGM
+                devilishAudio.currentTime = 0;
+
+                winningCharacterDisplay.style.display = 'none'; // Hide zoom screen
+                showWin(playerName, reason); // Proceed to the final win screen with happy music
+            }, devilishPhaseDuration);
+        }
+
+        function showWin(playerName, reason) {
+            winMessage.textContent = `🎉 ${playerName} Wins ${reason} 🎉`;
+            winVideo.src = gameAssets.win_dance_video;
+            winVideo.load(); 
+            winVideo.play().catch(e => console.warn("Win video play failed:", e)); 
+
+            winScreen.style.display = 'flex'; 
+
+            winnerAudio.currentTime = 0; 
+            winnerAudio.play().catch(e => console.error("Error playing winner song (likely autoplay policy):", e)); 
+        }
+
+        function nextTurn() {
+            let nextPlayerFound = false;
+            let attempts = 0; 
+            const maxAttempts = players.length * 2; 
+
+            do {
+                currentPlayerIndex = (currentPlayerIndex + 1) % players.length; 
+                
+                if (playerHasActiveCharacters(currentPlayerIndex)) {
+                    nextPlayerFound = true; 
+                }
+                
+                attempts++;
+                if (attempts > maxAttempts) {
+                    console.warn("Could not find an active player for the next turn. This might indicate an issue with win conditions or all players eliminated.");
+                    checkWin(); 
+                    return; 
+                }
+            } while (!nextPlayerFound);
+            
+            updateTurnInfo(); 
+        }
+
+        function playerHasActiveCharacters(playerIndex) {
+            return cells.some(cell => 
+                cell.player === playerIndex && !cell.eliminated
+            );
+        }
+
+        function updateTurnInfo(message = null) {
+            if (message) {
+                turnInfo.textContent = message;
+            } else {
+                if (players[currentPlayerIndex]) {
+                    turnInfo.textContent = `${players[currentPlayerIndex].name}'s turn.`;
+                } else {
+                    turnInfo.textContent = `Game ready! Start by setting up players.`;
+                }
+            }
+        }
+
+        function updateButtons() {
+            if (shootMode) {
+                shootBtn.textContent = 'Exit Shoot Mode';
+                shootBtn.classList.remove('btn-warning');
+                shootBtn.classList.add('btn-danger'); 
+            } else {
+                shootBtn.textContent = 'Toggle Shoot Mode';
+                shootBtn.classList.remove('btn-danger');
+                shootBtn.classList.add('btn-warning');
+            }
+        }
+
+        function updateCellStyles() {
+            cells.forEach(cellData => {
+                cellData.element.classList.remove('selected', 'target-mode');
+                
+                if (shootMode && !cellData.eliminated) {
+                    if (cellData === selectedShooter) {
+                        cellData.element.classList.add('selected'); 
+                    } else if (selectedShooter && cellData.player !== selectedShooter.player) {
+                        cellData.element.classList.add('target-mode'); 
+                    }
+                }
+            });
+        }
+
+        function resetGame() {
+            winningCharacterDisplay.style.display = 'none'; // Ensure zoom screen is hidden
+            winningCharacterImage.classList.remove('active'); // Reset zoom animation
+            winningCharacterImage.src = ''; // Clear image source
+
+            winScreen.style.display = 'none'; 
+            if (winVideo) {
+                winVideo.pause();
+                winVideo.currentTime = 0; 
+            }
+            setupModal.style.display = 'flex'; 
+            updatePlayerNameInputs(); 
+            turnInfo.textContent = 'Welcome! Set up your game to begin.';
+
+            winnerAudio.pause(); 
+            winnerAudio.currentTime = 0;
+
+            bgmAudio.pause(); 
+            bgmAudio.currentTime = 0;
+
+            devilishAudio.pause(); // Stop devilish audio
+            devilishAudio.currentTime = 0;
+        }
+
+    </script>
+</body>
+</html>
